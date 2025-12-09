@@ -29,7 +29,7 @@ const PORT = process.env.PORT || 5000;
 const app = express();
 const allowedOrigins = [
   "http://localhost:4200",
-  "https://chatbot-ui2808.web.app" // your live Firebase UI domain
+  "https://chatbot-ui2808.web.app"
 ];
 
 app.use(
@@ -56,15 +56,14 @@ const io = new Server(server, {
 });
 
 // ===== In-memory per-user PDF text store =====
-const perUserText = new Map(); // socket.id -> PDF text
+const perUserText = new Map();
 
 // ===== File Upload =====
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// Upload API (not mandatory for chat)
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     const sid = req.query.sid;
@@ -78,7 +77,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const text = (parsed.text || "").trim();
     if (!text) return res.status(422).json({ error: "Could not extract text" });
 
-    perUserText.set(sid, text.substring(0, 100_000)); // safe limit
+    perUserText.set(sid, text.substring(0, 100_000));
     console.log(`📄 PDF uploaded for ${sid}`);
     res.json({ ok: true, sid, pages: parsed.numpages ?? null });
   } catch (err) {
@@ -89,7 +88,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
 // ====== Hugging Face helpers ======
 
-// Check if question is related to context
 async function isRelatedToContext(question, context = "") {
   try {
     const payload = {
@@ -121,11 +119,11 @@ async function isRelatedToContext(question, context = "") {
     return result.startsWith("Y");
   } catch (err) {
     console.error("❌ Relatedness check error:", err.message);
-    return false; // assume not related on failure
+    return false;
   }
 }
 
-// Answer using PDF context
+// ====== Answer using PDF context ======
 async function answerFromContext(question, context) {
   try {
     const payload = {
@@ -134,7 +132,19 @@ async function answerFromContext(question, context) {
         {
           role: "system",
           content:
-            "Answer using only the provided context. If answer not found, say: I don't have enough information.",
+            "Use only the provided context to answer.\n\n" +
+            "You must format your response as a list.\n" +
+            "RULES:\n" +
+            "- Default: Use bullet points (each bullet MUST be on a new line).\n" +
+            "- For steps/instructions: Use numbered points (each number MUST be on a new line).\n" +
+            "- Every point MUST end with a period.\n" +
+            "- Each point MUST be one short sentence.\n" +
+            "- Never combine multiple points in one line.\n" +
+            "- Never write paragraphs.\n" +
+            "Example:\n" +
+            "- First point.\n" +
+            "- Second point.\n" +
+            "- Third point.\n"
         },
         { role: "user", content: `Context:\n${context}\n\nQuestion: ${question}` },
       ],
@@ -155,7 +165,7 @@ async function answerFromContext(question, context) {
   }
 }
 
-// General GPT-like answer
+// ====== General GPT-like answer ======
 async function answerGenerally(question) {
   try {
     const payload = {
@@ -164,7 +174,18 @@ async function answerGenerally(question) {
         {
           role: "system",
           content:
-            "You are a knowledgeable AI assistant. Answer clearly and concisely.",
+            "You are a knowledgeable assistant.\n\n" +
+            "You must format your response as a list.\n" +
+            "RULES:\n" +
+            "- Default: Use bullet points (each bullet MUST be on a new line).\n" +
+            "- For steps/instructions: Use numbered points (each number MUST be on a new line).\n" +
+            "- Every point MUST end with a period.\n" +
+            "- Never combine multiple points in a single line.\n" +
+            "- Never write paragraphs.\n" +
+            "Example:\n" +
+            "- First point.\n" +
+            "- Second point.\n" +
+            "- Third point.\n"
         },
         { role: "user", content: question },
       ],
@@ -200,14 +221,12 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", async (msg) => {
     const pdfText = perUserText.get(socket.id);
 
-    // If no PDF uploaded — general answer
     if (!pdfText) {
       const answer = await answerGenerally(msg);
       socket.emit("receiveMessage", answer);
       return;
     }
 
-    // Check if related
     const related = await isRelatedToContext(msg, pdfText);
     const answer = related
       ? await answerFromContext(msg, pdfText)
