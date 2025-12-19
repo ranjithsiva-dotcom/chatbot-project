@@ -9,9 +9,12 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { fileURLToPath } from "url";
 import multer from "multer";
-import { version } from "./package.json";
+
 
 dotenv.config();
+
+const version = process.env.npm_package_version;
+
 
 // Helpers for __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
