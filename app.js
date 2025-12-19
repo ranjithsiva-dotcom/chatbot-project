@@ -9,7 +9,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { fileURLToPath } from "url";
 import multer from "multer";
-import { version } from "process";
+import { version } from "./package.json";
 
 dotenv.config();
 
