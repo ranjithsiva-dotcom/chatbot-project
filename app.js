@@ -19,6 +19,7 @@ const version = process.env.npm_package_version;
 // Helpers for __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+console.log('app running')
 
 // ===== Environment Variables =====
 const HF_API_URL = process.env.HF_API_URL;

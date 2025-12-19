@@ -1,6 +1,6 @@
 {
   "name": "org_chatbot_api",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Chatbot backend API with Socket.IO and Hugging Face integration",
   "main": "app.js",
   "type": "module",
