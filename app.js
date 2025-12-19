@@ -29,7 +29,7 @@ const PORT = process.env.PORT || 5000;
 const app = express();
 const allowedOrigins = [
   "http://localhost:4200",
-  "https://chatbot-ui2808.web.app"
+  "https://chatbot-ui2809-664c5.web.app"
 ];
 
 app.use(
@@ -47,6 +47,8 @@ app.get("/health", (_req, res) => res.send("ok"));
 app.get("/", (_req, res) =>
   res.json({ status: `API is working with ${version}`, time: new Date().toISOString() })
 );
+
+console.log(`Org. App Start`)
 
 // ===== Create HTTP + Socket.IO Server =====
 const server = http.createServer(app);
